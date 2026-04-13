@@ -6,7 +6,7 @@
   "name": "Animatica",
   "description": "Allow for animating more game textures using the MCPatcher/OptiFine animation format",
   "authors": [
-    "FoundationGames"
+    "FoundationGames, coredex-source"
   ],
   "contact": {
     "homepage": "https://github.com/FoundationGames/Animatica",

@@ -1,9 +1,11 @@
 package io.github.foundationgames.animatica;
 
 import io.github.foundationgames.animatica.animation.AnimationLoader;
+import io.github.foundationgames.animatica.animation.AnimatedTexture;
 import io.github.foundationgames.animatica.config.AnimaticaConfig;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackType;
 import org.apache.logging.log4j.LogManager;
@@ -17,7 +19,8 @@ public class Animatica implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(AnimationLoader.INSTANCE);
+        ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(AnimationLoader.ID, AnimationLoader.INSTANCE);
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> AnimatedTexture.shutdownExecutor());
     }
 
     public static Identifier id(String path) {

@@ -14,6 +14,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -23,7 +26,8 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.Mth;
 
 public class AnimatedTexture extends DynamicTexture implements TickableTexture {
-    public static final ExecutorService EXECUTORS = Executors.newFixedThreadPool(4);
+    private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(1);
+    public static final ExecutorService EXECUTORS = Executors.newFixedThreadPool(4, daemonThreadFactory());
 
     public final Animation[] anims;
     private final NativeImage original;
@@ -116,6 +120,27 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
     @Override
     public void tick() {
         this.updateAndDraw(this.getPixels(), false, EXECUTORS);
+    }
+
+    public static void shutdownExecutor() {
+        EXECUTORS.shutdown();
+
+        try {
+            if (!EXECUTORS.awaitTermination(2, TimeUnit.SECONDS)) {
+                EXECUTORS.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            EXECUTORS.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static ThreadFactory daemonThreadFactory() {
+        return task -> {
+            var thread = new Thread(task, "Animatica animation worker #" + THREAD_COUNTER.getAndIncrement());
+            thread.setDaemon(true);
+            return thread;
+        };
     }
 
     @Override

@@ -1,6 +1,7 @@
 package io.github.foundationgames.animatica.animation;
 
 import io.github.foundationgames.animatica.Animatica;
+import io.github.foundationgames.animatica.compat.IrisCompat;
 import io.github.foundationgames.animatica.util.Flags;
 import io.github.foundationgames.animatica.util.exception.PropertyParseException;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
@@ -83,6 +84,10 @@ public final class AnimationLoader implements SimpleSynchronousResourceReloadLis
                         var animId = Identifier.fromNamespaceAndPath(targetId.getNamespace(), targetId.getPath() + "-anim");
                         this.animationIds.put(targetId, animId);
                         Minecraft.getInstance().getTextureManager().register(animId, tex);
+
+                        if (Animatica.IRIS_COMPAT) {
+                            IrisCompat.trackTexture(tex);
+                        }
                     });
         }
 

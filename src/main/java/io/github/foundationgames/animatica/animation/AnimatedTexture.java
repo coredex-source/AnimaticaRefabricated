@@ -17,7 +17,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TickableTexture;
@@ -29,6 +28,7 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
     private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(1);
     public static final ExecutorService EXECUTORS = Executors.newFixedThreadPool(4, daemonThreadFactory());
 
+    public final Identifier targetId;
     public final Animation[] anims;
     private final NativeImage original;
     private int frame = 0;
@@ -37,15 +37,16 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
 
     public static Optional<AnimatedTexture> tryCreate(ResourceManager resources, Identifier targetTexId, List<AnimationMeta> anims) {
         try (var targetTexResource = resources.getResourceOrThrow(targetTexId).open()) {
-            return Optional.of(new AnimatedTexture(targetTexId::toString, resources, anims, NativeImage.read(targetTexResource)));
+            return Optional.of(new AnimatedTexture(targetTexId, resources, anims, NativeImage.read(targetTexResource)));
         } catch (IOException e) { Animatica.LOG.error(e); }
 
         return Optional.empty();
     }
 
-    public AnimatedTexture(Supplier<String> name, ResourceManager resources, List<AnimationMeta> metas, NativeImage image) throws IOException {
-        super(name, image.getWidth(), image.getHeight(), true);
+    public AnimatedTexture(Identifier targetId, ResourceManager resources, List<AnimationMeta> metas, NativeImage image) throws IOException {
+        super(targetId::toString, image.getWidth(), image.getHeight(), true);
 
+        this.targetId = targetId;
         this.anims = new Animation[metas.size()];
         for (int i = 0; i < metas.size(); i++) {
             this.anims[i] = new Animation(metas.get(i), resources);

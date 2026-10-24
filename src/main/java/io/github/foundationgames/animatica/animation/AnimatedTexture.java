@@ -2,12 +2,14 @@ package io.github.foundationgames.animatica.animation;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.foundationgames.animatica.Animatica;
 import io.github.foundationgames.animatica.util.TextureUtil;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -19,18 +21,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.client.renderer.texture.TickableTexture;
+import net.minecraft.client.renderer.texture.TextureResources;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.util.Mth;
 
-public class AnimatedTexture extends DynamicTexture implements TickableTexture {
+public class AnimatedTexture implements AutoCloseable {
     private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(1);
     public static final ExecutorService EXECUTORS = Executors.newFixedThreadPool(4, daemonThreadFactory());
 
     public final Animation[] anims;
+    public final TextureResources textureResources;
     private final NativeImage original;
+    private final NativeImage pixels;
+    private boolean closed;
     private int frame = 0;
 
     private CompletableFuture<Void> frameWaitingOn = null;
@@ -44,16 +47,21 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
     }
 
     public AnimatedTexture(Supplier<String> name, ResourceManager resources, List<AnimationMeta> metas, NativeImage image) throws IOException {
-        super(name, image.getWidth(), image.getHeight(), true);
-
         this.anims = new Animation[metas.size()];
         for (int i = 0; i < metas.size(); i++) {
             this.anims[i] = new Animation(metas.get(i), resources);
         }
         this.original = image;
 
-        updateAndDraw(this.getPixels(), true, Minecraft.getInstance());
-        this.upload();
+        this.pixels = new NativeImage(image.getWidth(), image.getHeight(), true);
+        this.textureResources = TextureResources.from2dImage(name, image);
+        updateAndDraw(this.pixels, true, Minecraft.getInstance());
+    }
+
+    private synchronized void upload() {
+        if (!this.closed && !this.textureResources.texture().isClosed()) {
+            this.pixels.writeToGpuTexture(RenderSystem.getDevice().createCommandEncoder(), this.textureResources.texture());
+        }
     }
 
     public boolean canLoop() {
@@ -74,7 +82,8 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
         return this.frameWaitingOn;
     }
 
-    public void updateAndDraw(NativeImage image, boolean force, Executor exec) {
+    public synchronized void updateAndDraw(NativeImage image, boolean force, Executor exec) {
+        if (this.closed) return;
         boolean changed = false;
 
         if (canLoop()) {
@@ -95,19 +104,24 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
         if (changed || force) {
             // Skip if still waiting for a frame to finish
             if (this.getFrameWaitingOn() == null) {
+                // Capture the frame before the animation state advances.
+                var phases = Arrays.stream(anims).map(Animation::getCurrentPhase).toList();
+                var phaseFrames = Arrays.stream(anims).mapToInt(Animation::getPhaseFrame).toArray();
                 this.frameWaitingOn = CompletableFuture.runAsync(() -> {
-                    image.copyFrom(this.original);
-
-                    Phase phase;
-                    for (var anim : anims) {
-                        phase = anim.getCurrentPhase();
-                        if (phase instanceof InterpolatedPhase iPhase) {
-                            TextureUtil.blendCopy(anim.sourceTexture, 0, iPhase.prevV, 0, iPhase.v, anim.width, anim.height, image, anim.targetX, anim.targetY, iPhase.blend.getBlend(anim.getPhaseFrame()));
-                        } else {
-                            TextureUtil.copy(anim.sourceTexture, 0, phase.v, anim.width, anim.height, image, anim.targetX, anim.targetY);
+                    synchronized (this) {
+                        if (this.closed) return;
+                        image.copyFrom(this.original);
+                        for (int i = 0; i < anims.length; i++) {
+                            var anim = anims[i];
+                            var phase = phases.get(i);
+                            if (phase instanceof InterpolatedPhase iPhase) {
+                                TextureUtil.blendCopy(anim.sourceTexture, 0, iPhase.prevV, 0, iPhase.v, anim.width, anim.height, image, anim.targetX, anim.targetY, iPhase.blend.getBlend(phaseFrames[i]));
+                            } else {
+                                TextureUtil.copy(anim.sourceTexture, 0, phase.v, anim.width, anim.height, image, anim.targetX, anim.targetY);
+                            }
                         }
                     }
-                }, exec).thenAccept(v -> Minecraft.getInstance().execute(this::upload));
+                }, exec).thenRunAsync(this::upload, Minecraft.getInstance());
             }
         }
 
@@ -117,9 +131,8 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
         frame++;
     }
 
-    @Override
     public void tick() {
-        this.updateAndDraw(this.getPixels(), false, EXECUTORS);
+        this.updateAndDraw(this.pixels, false, EXECUTORS);
     }
 
     public static void shutdownExecutor() {
@@ -144,13 +157,16 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
+        if (this.closed) return;
+        this.closed = true;
+
         for (var anim : anims) {
             anim.close();
         }
 
         this.original.close();
-        super.close();
+        this.pixels.close();
     }
 
     // Represents an active animation from an animation meta file; progresses through phases while being drawn
@@ -281,7 +297,7 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
         }
 
         private int getVForFrame(int frame, int textureFrameCount) {
-            return Mth.clamp(frame * this.height, 0, (textureFrameCount - 1) * this.height);
+            return Math.clamp(frame * this.height, 0, (textureFrameCount - 1) * this.height);
         }
     }
 

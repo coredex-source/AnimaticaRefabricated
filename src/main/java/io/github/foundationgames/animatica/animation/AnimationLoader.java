@@ -29,6 +29,7 @@ public final class AnimationLoader implements SimpleSynchronousResourceReloadLis
     public static final AnimationLoader INSTANCE = new AnimationLoader();
 
     private final Map<Identifier, Identifier> animationIds = new HashMap<>();
+    private final Map<Identifier, AnimatedTexture> animatedTextures = new HashMap<>();
 
     private AnimationLoader() {
     }
@@ -50,7 +51,7 @@ public final class AnimationLoader implements SimpleSynchronousResourceReloadLis
 
     @Override
     public void onResourceManagerReload(ResourceManager manager) {
-        this.animationIds.clear();
+        this.close();
 
         if (!Animatica.CONFIG.animatedTextures) {
             return;
@@ -82,10 +83,27 @@ public final class AnimationLoader implements SimpleSynchronousResourceReloadLis
                     .ifPresent(tex -> {
                         var animId = Identifier.fromNamespaceAndPath(targetId.getNamespace(), targetId.getPath() + "-anim");
                         this.animationIds.put(targetId, animId);
-                        Minecraft.getInstance().getTextureManager().register(animId, tex);
+                        this.animatedTextures.put(animId, tex);
+                        Minecraft.getInstance().getTextureManager().register(animId, tex.textureResources);
                     });
         }
 
         Flags.ALLOW_INVALID_ID_CHARS = false;
+    }
+
+    public void tick() {
+        if (Animatica.CONFIG.animatedTextures) {
+            this.animatedTextures.values().forEach(AnimatedTexture::tick);
+        }
+    }
+
+    public void close() {
+        var textureManager = Minecraft.getInstance().getTextureManager();
+        this.animatedTextures.forEach((id, texture) -> {
+            texture.close();
+            textureManager.release(id);
+        });
+        this.animatedTextures.clear();
+        this.animationIds.clear();
     }
 }

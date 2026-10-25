@@ -3,9 +3,9 @@ package io.github.foundationgames.animatica.compat;
 import com.mojang.renderpearl.api.textures.GpuSampler;
 import com.mojang.renderpearl.api.textures.GpuTexture;
 import com.mojang.renderpearl.api.textures.GpuTextureView;
+import com.mojang.renderpearl.backend.opengl.GlTexture;
 import io.github.foundationgames.animatica.animation.AnimatedTexture;
 import io.github.foundationgames.animatica.animation.AnimationLoader;
-import net.irisshaders.iris.mixinterface.GpuTextureInterface;
 import net.irisshaders.iris.pbr.TextureTracker;
 import net.irisshaders.iris.pbr.loader.PBRTextureLoader;
 import net.irisshaders.iris.pbr.loader.PBRTextureLoaderRegistry;
@@ -23,7 +23,9 @@ public enum IrisCompat {;
     }
 
     public static void trackTexture(AnimatedTexture texture) {
-        TextureTracker.INSTANCE.trackTexture(((GpuTextureInterface) texture.getTexture()).iris$getGlId(), texture);
+        if (texture.getTexture() instanceof GlTexture glTexture) {
+            TextureTracker.INSTANCE.trackTexture(glTexture.glId(), texture);
+        }
     }
 
     private static class SharedTexture extends AbstractTexture {

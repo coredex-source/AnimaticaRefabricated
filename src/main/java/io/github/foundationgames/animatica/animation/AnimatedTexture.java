@@ -2,6 +2,9 @@ package io.github.foundationgames.animatica.animation;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.renderpearl.api.textures.AddressMode;
+import com.mojang.renderpearl.api.textures.FilterMode;
 import io.github.foundationgames.animatica.Animatica;
 import io.github.foundationgames.animatica.util.TextureUtil;
 import org.jetbrains.annotations.Nullable;
@@ -19,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.client.renderer.texture.TextureContents;
 import net.minecraft.client.renderer.texture.TickableTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -36,22 +40,25 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
     private CompletableFuture<Void> frameWaitingOn = null;
 
     public static Optional<AnimatedTexture> tryCreate(ResourceManager resources, Identifier targetTexId, List<AnimationMeta> anims) {
-        try (var targetTexResource = resources.getResourceOrThrow(targetTexId).open()) {
-            return Optional.of(new AnimatedTexture(targetTexId, resources, anims, NativeImage.read(targetTexResource)));
+        try {
+            return Optional.of(new AnimatedTexture(targetTexId, resources, anims, TextureContents.load(resources, targetTexId)));
         } catch (IOException e) { Animatica.LOG.error(e); }
 
         return Optional.empty();
     }
 
-    public AnimatedTexture(Identifier targetId, ResourceManager resources, List<AnimationMeta> metas, NativeImage image) throws IOException {
-        super(targetId::toString, image.getWidth(), image.getHeight(), true);
+    public AnimatedTexture(Identifier targetId, ResourceManager resources, List<AnimationMeta> metas, TextureContents contents) throws IOException {
+        super(targetId::toString, contents.image().getWidth(), contents.image().getHeight(), true);
+        var addressMode = contents.clamp() ? AddressMode.CLAMP_TO_EDGE : AddressMode.REPEAT;
+        var filterMode = contents.blur() ? FilterMode.LINEAR : FilterMode.NEAREST;
+        this.sampler = RenderSystem.getSamplerCache().getSampler(addressMode, addressMode, filterMode, filterMode, false);
 
         this.targetId = targetId;
         this.anims = new Animation[metas.size()];
         for (int i = 0; i < metas.size(); i++) {
             this.anims[i] = new Animation(metas.get(i), resources);
         }
-        this.original = image;
+        this.original = contents.image();
 
         updateAndDraw(this.getPixels(), true, Minecraft.getInstance());
         this.upload();

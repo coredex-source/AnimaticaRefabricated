@@ -4,16 +4,12 @@ import io.github.foundationgames.animatica.animation.AnimationLoader;
 import io.github.foundationgames.animatica.animation.AnimatedTexture;
 import io.github.foundationgames.animatica.compat.IrisCompat;
 import io.github.foundationgames.animatica.config.AnimaticaConfig;
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.fabricmc.loader.api.FabricLoader;
+import io.github.foundationgames.animatica.loaders.Platform;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.PackType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class Animatica implements ClientModInitializer {
+public class Animatica {
     public static final Logger LOG = LogManager.getLogger("Animatica");
     public static final String NAMESPACE = "animatica";
 
@@ -21,12 +17,11 @@ public class Animatica implements ClientModInitializer {
 
     public static boolean IRIS_COMPAT = false;
 
-    @Override
-    public void onInitializeClient() {
-        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(AnimationLoader.INSTANCE);
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> AnimatedTexture.shutdownExecutor());
+    public static void initializeClient() {
+        Platform.registerReloadListener(AnimationLoader.ID, AnimationLoader.INSTANCE);
+        Platform.registerClientStopping(AnimatedTexture::shutdownExecutor);
 
-        if (FabricLoader.getInstance().isModLoaded("iris")) {
+        if (Platform.isModLoaded("iris")) {
             try {
                 IrisCompat.init();
                 IRIS_COMPAT = true;

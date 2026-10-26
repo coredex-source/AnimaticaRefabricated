@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": [
+    "${mod_author}"
+  ],
+  "contact": {
+    "homepage": "${mod_sources}",
+    "sources": "${mod_sources}",
+    "issues": "${mod_sources}/issues"
+  },
+
+  "license": "${mod_license}",
+  "icon": "${mod_icon}",
+
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "io.github.foundationgames.animatica.loaders.fabric.AnimaticaFabric"
+    ]
+  },
+  "mixins": [
+    "animatica.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.11.3",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_dependency}",
+    "java": ">=25"
+  }
+}

@@ -1,7 +1,7 @@
 package io.github.foundationgames.animatica.config;
 
 import io.github.foundationgames.animatica.Animatica;
-import net.fabricmc.loader.api.FabricLoader;
+import io.github.foundationgames.animatica.loaders.Platform;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.OptionInstance;
 import java.io.IOException;
@@ -46,7 +46,7 @@ public class AnimaticaConfig {
     }
 
     public Path getFile() throws IOException {
-        var file = FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
+        var file = Platform.getConfigDir().resolve(FILE_NAME);
         if (!Files.exists(file)) {
             Files.createFile(file);
         }

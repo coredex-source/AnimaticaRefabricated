@@ -4,11 +4,11 @@ import io.github.foundationgames.animatica.Animatica;
 import io.github.foundationgames.animatica.compat.IrisCompat;
 import io.github.foundationgames.animatica.util.Flags;
 import io.github.foundationgames.animatica.util.exception.PropertyParseException;
-import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -19,13 +19,13 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.BiConsumer;
 
-public final class AnimationLoader implements SimpleSynchronousResourceReloadListener {
+public final class AnimationLoader implements ResourceManagerReloadListener {
     public static final String[] ANIM_PATHS = {
             "animatica/anim",
             "mcpatcher/anim",
             "optifine/anim"
     };
-    private static final Identifier ID = Animatica.id("animation_storage");
+    public static final Identifier ID = Animatica.id("animation_storage");
 
     public static final AnimationLoader INSTANCE = new AnimationLoader();
 
@@ -42,11 +42,6 @@ public final class AnimationLoader implements SimpleSynchronousResourceReloadLis
 
     public @Nullable Identifier getAnimationId(Identifier id) {
         return animationIds.get(id);
-    }
-
-    @Override
-    public Identifier getFabricId() {
-        return ID;
     }
 
     @Override

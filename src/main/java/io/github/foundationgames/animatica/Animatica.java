@@ -2,7 +2,9 @@ package io.github.foundationgames.animatica;
 
 import io.github.foundationgames.animatica.animation.AnimationLoader;
 import io.github.foundationgames.animatica.animation.AnimatedTexture;
+//? if <26.4 {
 import io.github.foundationgames.animatica.compat.IrisCompat;
+//?}
 import io.github.foundationgames.animatica.config.AnimaticaConfig;
 import io.github.foundationgames.animatica.loaders.Platform;
 import net.minecraft.resources.Identifier;
@@ -19,8 +21,16 @@ public class Animatica {
 
     public static void initializeClient() {
         Platform.registerReloadListener(AnimationLoader.ID, AnimationLoader.INSTANCE);
-        Platform.registerClientStopping(AnimatedTexture::shutdownExecutor);
+        Platform.registerClientStopping(() -> {
+            AnimationLoader.INSTANCE.close();
+            AnimatedTexture.shutdownExecutor();
+        });
+        //? if >=26.4 {
+        /*Platform.registerClientTick(AnimationLoader.INSTANCE::tick);
+        *///?}
 
+        // No iris for 26.4 yet so I need to REMOVE THIS if clause once a build releases.
+        //? if <26.4 {
         if (Platform.isModLoaded("iris")) {
             try {
                 IrisCompat.init();
@@ -29,6 +39,7 @@ public class Animatica {
                 LOG.warn("Can't init Iris, PBR will not use animated textures.", e);
             }
         }
+        //?}
     }
 
     public static Identifier id(String path) {

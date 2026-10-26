@@ -47,6 +47,15 @@ public final class Platform {
         *///?}
     }
 
+    public static void registerClientTick(Runnable handler) {
+        //? if fabric {
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> handler.run());
+        //?} else if neoforge {
+        /*net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
+                net.neoforged.neoforge.client.event.ClientTickEvent.Post.class, event -> handler.run());
+        *///?}
+    }
+
     //? if neoforge {
     /*public static void registerNeoForgeEvents(net.neoforged.bus.api.IEventBus modEventBus) {
         modEventBus.addListener(Platform::registerNeoForgeReloadListeners);

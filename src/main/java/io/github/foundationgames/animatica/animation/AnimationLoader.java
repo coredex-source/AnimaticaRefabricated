@@ -1,7 +1,9 @@
 package io.github.foundationgames.animatica.animation;
 
 import io.github.foundationgames.animatica.Animatica;
+//? if <26.4 {
 import io.github.foundationgames.animatica.compat.IrisCompat;
+//?}
 import io.github.foundationgames.animatica.util.Flags;
 import io.github.foundationgames.animatica.util.exception.PropertyParseException;
 import net.minecraft.client.Minecraft;
@@ -30,6 +32,7 @@ public final class AnimationLoader implements ResourceManagerReloadListener {
     public static final AnimationLoader INSTANCE = new AnimationLoader();
 
     private final Map<Identifier, Identifier> animationIds = new HashMap<>();
+    private final Map<Identifier, AnimatedTexture> animatedTextures = new HashMap<>();
 
     private AnimationLoader() {
     }
@@ -46,7 +49,7 @@ public final class AnimationLoader implements ResourceManagerReloadListener {
 
     @Override
     public void onResourceManagerReload(ResourceManager manager) {
-        this.animationIds.clear();
+        this.close();
 
         if (!Animatica.CONFIG.animatedTextures) {
             return;
@@ -78,14 +81,37 @@ public final class AnimationLoader implements ResourceManagerReloadListener {
                     .ifPresent(tex -> {
                         var animId = Identifier.fromNamespaceAndPath(targetId.getNamespace(), targetId.getPath() + "-anim");
                         this.animationIds.put(targetId, animId);
+                        this.animatedTextures.put(animId, tex);
+                        //? if >=26.4 {
+                        /*Minecraft.getInstance().getTextureManager().register(animId, tex.textureResources);
+                        *///?} else {
                         Minecraft.getInstance().getTextureManager().register(animId, tex);
 
                         if (Animatica.IRIS_COMPAT) {
                             IrisCompat.trackTexture(tex);
                         }
+                        //?}
                     });
         }
 
         Flags.ALLOW_INVALID_ID_CHARS = false;
+    }
+
+    //? if >=26.4 {
+    /*
+    public void tick() {
+        this.animatedTextures.values().forEach(AnimatedTexture::tick);
+    }
+    *///?}
+
+    // Closes every animated texture
+    public void close() {
+        var textureManager = Minecraft.getInstance().getTextureManager();
+        this.animatedTextures.forEach((id, texture) -> {
+            texture.close();
+            textureManager.release(id);
+        });
+        this.animatedTextures.clear();
+        this.animationIds.clear();
     }
 }

@@ -21,8 +21,8 @@ public enum TextureUtil {;
      * @param dv The v coordinate on the destination image to place the selection at
      */
     public static void copy(NativeImage src, int u, int v, int w, int h, NativeImage dest, int du, int dv) {
-        w = Mth.clamp(dest.getWidth() - du, 0, w);
-        h = Mth.clamp(dest.getHeight() - dv, 0, h);
+        w = Utilities.clamp(dest.getWidth() - du, 0, w);
+        h = Utilities.clamp(dest.getHeight() - dv, 0, h);
 
         long srcPtr = ((NativeImageAccessor)(Object)src).getPointer();
         long dstPtr = ((NativeImageAccessor)(Object)dest).getPointer();
@@ -55,8 +55,8 @@ public enum TextureUtil {;
      *              second (0 = solid first image, 1 = solid second image)
      */
     public static void blendCopy(NativeImage src, int u0, int v0, int u1, int v1, int w, int h, NativeImage dest, int du, int dv, float blend) {
-        w = Mth.clamp(dest.getWidth() - du, 0, w);
-        h = Mth.clamp(dest.getHeight() - dv, 0, h);
+        w = Utilities.clamp(dest.getWidth() - du, 0, w);
+        h = Utilities.clamp(dest.getHeight() - dv, 0, h);
 
         long srcPtr = ((NativeImageAccessor)(Object)src).getPointer();
         long dstPtr = ((NativeImageAccessor)(Object)dest).getPointer();

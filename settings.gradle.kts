@@ -37,7 +37,11 @@ stonecutter {
             loaders.forEach { loader -> version("$mcVersion-$loader", mcVersion) }
         }
 
+        mc("26.1", listOf("fabric", "neoforge"))
+        mc("26.2", listOf("fabric", "neoforge"))
         mc("26.3", listOf("fabric", "neoforge"))
+        // Builds against 26.4-snapshot-5 for now, and NeoForge has no 26.4 builds yet
+        mc("26.4", listOf("fabric"))
 
         vcsVersion = "26.3-fabric"
     }

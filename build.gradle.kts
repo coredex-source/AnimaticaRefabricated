@@ -13,7 +13,7 @@ fun optionalProp(name: String, consumer: (String) -> Unit) {
 val targetMinecraftVersion = stringProp("deps.minecraft")
 val loader = project.name.substringAfterLast("-")
 
-version = "${stringProp("mod.version")}+$targetMinecraftVersion-$loader"
+version = "${stringProp("mod.version")}+${project.name}"
 base.archivesName = stringProp("archives.name")
 
 modstitch {
@@ -31,8 +31,12 @@ modstitch {
 
         replacementProperties.put("mod_sources", stringProp("mod.sources"))
         replacementProperties.put("mod_icon", stringProp("mod.icon"))
-        replacementProperties.put("minecraft_dependency", stringProp("mod.minecraft_dependency"))
-        replacementProperties.put("neoforge_minecraft_dependency", stringProp("mod.neoforge_minecraft_dependency"))
+        optionalProp("mod.minecraft_dependency") {
+            replacementProperties.put("minecraft_dependency", it)
+        }
+        optionalProp("mod.neoforge_minecraft_dependency") {
+            replacementProperties.put("neoforge_minecraft_dependency", it)
+        }
     }
 
     loom {
@@ -62,7 +66,9 @@ stonecutter {
 
 dependencies {
     // Optional, only used for PBR texture compatibility
-    modstitchModCompileOnly("maven.modrinth:iris:${stringProp("deps.iris")}")
+    optionalProp("deps.iris") {
+        modstitchModCompileOnly("maven.modrinth:iris:$it")
+    }
 
     modstitch.loom {
         modstitchModImplementation("net.fabricmc.fabric-api:fabric-api:${stringProp("deps.fabric_api")}")

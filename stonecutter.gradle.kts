@@ -10,10 +10,10 @@ tasks.register<Delete>("clean") {
 
 tasks.register("chiseledBuild") {
     group = "build"
-    dependsOn(":26.3-fabric:build", ":26.3-neoforge:build")
+    dependsOn(stonecutter.versions.map { ":${it.project}:build" })
 }
 
 tasks.register("binJar") {
     group = "build"
-    dependsOn(":26.3-fabric:binJar", ":26.3-neoforge:binJar")
+    dependsOn(stonecutter.versions.map { ":${it.project}:binJar" })
 }

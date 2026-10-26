@@ -1,9 +1,17 @@
+//? if <26.4 {
 package io.github.foundationgames.animatica.compat;
 
+//? if >=26.3 {
 import com.mojang.renderpearl.api.textures.GpuSampler;
 import com.mojang.renderpearl.api.textures.GpuTexture;
 import com.mojang.renderpearl.api.textures.GpuTextureView;
 import com.mojang.renderpearl.backend.opengl.GlTexture;
+//?} else {
+/*import com.mojang.blaze3d.opengl.GlTexture;
+import com.mojang.blaze3d.textures.GpuSampler;
+import com.mojang.blaze3d.textures.GpuTexture;
+import com.mojang.blaze3d.textures.GpuTextureView;
+*///?}
 import io.github.foundationgames.animatica.animation.AnimatedTexture;
 import io.github.foundationgames.animatica.animation.AnimationLoader;
 import net.irisshaders.iris.pbr.TextureTracker;
@@ -79,3 +87,4 @@ public enum IrisCompat {;
         }
     }
 }
+//?}

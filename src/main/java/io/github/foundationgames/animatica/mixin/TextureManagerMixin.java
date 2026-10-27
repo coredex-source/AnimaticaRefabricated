@@ -15,6 +15,7 @@ public class TextureManagerMixin {
         if (Animatica.CONFIG.animatedTextures) {
             var anim = AnimationLoader.INSTANCE.getAnimationId(old);
             if (anim != null) {
+                AnimationLoader.INSTANCE.markDrawn(anim);
                 return anim;
             }
         }

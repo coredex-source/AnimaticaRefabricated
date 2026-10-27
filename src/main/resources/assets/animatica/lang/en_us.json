@@ -1,3 +1,8 @@
 {
-    "option.animatica.animated_textures": "Custom Animations"
+    "option.animatica.page": "Animations",
+    "option.animatica.animated_textures": "Custom Animations",
+    "option.animatica.animated_textures.tooltip": "Allow using animated textures from resource packs.",
+    "option.animatica.play_once_restart": "Play-Once Restart",
+    "option.animatica.play_once_restart.when_drawn": "When Shown",
+    "option.animatica.play_once_restart.on_reload": "On Reload"
 }

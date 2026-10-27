@@ -16,3 +16,5 @@ This includes:
 
 **These features WILL NEVER be implemented in Animatica.** <br/>
 ### Animatica is ONLY for ANIMATED TEXTURES.
+
+## For development docs related to features added in or after 0.7.0 please refer to [the development guide](docs/Development%20docs%20for%20>=0.7.0.md)

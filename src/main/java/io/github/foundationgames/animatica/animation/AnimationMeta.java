@@ -14,7 +14,7 @@ import net.minecraft.resources.Identifier;
 public record AnimationMeta(
         Identifier source, Identifier target, int targetX,
         int targetY, int width, int height, int defaultFrameDuration, boolean interpolate,
-        int interpolationDelay, Map<Integer, Integer> frameMapping,
+        int interpolationDelay, boolean loop, Map<Integer, Integer> frameMapping,
         Map<Integer, Integer> frameDurations
 ) {
     public static AnimationMeta of(Identifier file, Properties properties) throws PropertyParseException {
@@ -36,6 +36,7 @@ public record AnimationMeta(
                 PropertyUtil.getIntOr(file, properties, "duration", 1),
                 PropertyUtil.getBoolOr(file, properties, "interpolate", false),
                 PropertyUtil.getIntOr(file, properties, "skip", 0),
+                PropertyUtil.getBoolOr(file, properties, "loop", true),
                 PropertyUtil.intToIntMap(PropertyUtil.getSubProperties(properties, "tile")),
                 PropertyUtil.intToIntMap(PropertyUtil.getSubProperties(properties, "duration"))
         );

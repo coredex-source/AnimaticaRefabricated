@@ -47,6 +47,21 @@ public final class AnimationLoader implements ResourceManagerReloadListener {
         return animationIds.get(id);
     }
 
+    public void markDrawn(Identifier animId) {
+        var texture = this.animatedTextures.get(animId);
+        if (texture != null && !isLoadingOverlayShown()) {
+            texture.markDrawn();
+        }
+    }
+
+    static boolean isLoadingOverlayShown() {
+        //? if >=26.2 {
+        return Minecraft.getInstance().gui.overlay() != null;
+        //?} else {
+        /*return Minecraft.getInstance().getOverlay() != null;
+        *///?}
+    }
+
     @Override
     public void onResourceManagerReload(ResourceManager manager) {
         this.close();

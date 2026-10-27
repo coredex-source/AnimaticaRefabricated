@@ -11,6 +11,7 @@ import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.blaze3d.textures.FilterMode;
 *///?}
 import io.github.foundationgames.animatica.Animatica;
+import io.github.foundationgames.animatica.config.AnimaticaConfig.PlayOnceRestart;
 import io.github.foundationgames.animatica.util.TextureUtil;
 import io.github.foundationgames.animatica.util.Utilities;
 import org.jetbrains.annotations.Nullable;
@@ -45,6 +46,7 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
 //?}
     private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(1);
     public static final ExecutorService EXECUTORS = Executors.newFixedThreadPool(4, daemonThreadFactory());
+    private static final int IDLE_TICKS = 10;
 
     public final Identifier targetId;
     public final Animation[] anims;
@@ -54,6 +56,9 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
     private final NativeImage pixels;
     *///?}
     private boolean closed = false;
+    private boolean dirty = false;
+    private volatile boolean drawn = false;
+    private int idleTicks = IDLE_TICKS;
     private int frame = 0;
 
     private CompletableFuture<Void> frameWaitingOn = null;
@@ -111,6 +116,10 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
     }
     //?}
 
+    public void markDrawn() {
+        this.drawn = true;
+    }
+
     public boolean canLoop() {
         for (var anim : anims) {
             if (!anim.isOnFrameZero()) {
@@ -133,6 +142,20 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
         if (this.closed) return;
         boolean changed = false;
 
+        boolean restartWhenDrawn = Animatica.CONFIG.playOnceRestart == PlayOnceRestart.WHEN_DRAWN;
+        if (this.drawn) {
+            this.drawn = false;
+            this.idleTicks = 0;
+        } else if (this.idleTicks < IDLE_TICKS) {
+            this.idleTicks++;
+            if (this.idleTicks == IDLE_TICKS && restartWhenDrawn) {
+                for (var anim : anims) {
+                    if (!anim.loop) anim.rewind();
+                }
+            }
+        }
+        boolean playOnceRunning = restartWhenDrawn ? this.idleTicks < IDLE_TICKS : !AnimationLoader.isLoadingOverlayShown();
+
         if (canLoop()) {
             if (frame > 0) {
                 frame = 0;
@@ -149,8 +172,13 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
         }
 
         if (changed || force) {
-            // Skip if still waiting for a frame to finish
+            this.dirty = true;
+        }
+
+        if (this.dirty) {
             if (this.getFrameWaitingOn() == null) {
+                this.dirty = false;
+
                 var phases = Arrays.stream(anims).map(Animation::getCurrentPhase).toList();
                 var phaseFrames = Arrays.stream(anims).mapToInt(Animation::getPhaseFrame).toArray();
 
@@ -174,7 +202,11 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
         }
 
         for (var anim : anims) {
-            anim.advance();
+            if (anim.loop || playOnceRunning) {
+                anim.advance();
+            } else {
+                anim.pause();
+            }
         }
         frame++;
     }
@@ -234,6 +266,7 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
         public final int targetY;
         public final int width;
         public final int height;
+        public final boolean loop;
         private final int duration;
 
         private int frame = 0;
@@ -247,6 +280,7 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
             this.targetY = meta.targetY();
             this.width = meta.width();
             this.height = meta.height();
+            this.loop = meta.loop();
 
             try (var source = resources.getResourceOrThrow(meta.source()).open()) {
                 this.sourceTexture = NativeImage.read(source);
@@ -278,7 +312,7 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
                 int fDuration = frame[1];
 
                 int v = getVForFrame(fMap, textureFrameCount);
-                int nextV = getVForFrame(frames.get(Math.floorMod(i + 1, frames.size()))[0], textureFrameCount);
+                int nextV = !this.loop && i == frames.size() - 1 ? v : getVForFrame(frames.get(Math.floorMod(i + 1, frames.size()))[0], textureFrameCount);
 
                 if (meta.interpolate()) {
                     if (meta.interpolationDelay() > 0) {
@@ -314,7 +348,7 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
                         // Marks baking anim as changed should it be in a new, unique phase
                         changed = true;
                     }
-                    if (phase instanceof InterpolatedPhase iPhase) changed = iPhase.hasChangingV(); // Marks baking anim as changed should its current phase be changing
+                    if (phase instanceof InterpolatedPhase iPhase && iPhase.hasChangingV()) changed = true; // Marks baking anim as changed should its current phase be changing
 
                     this.currentPhase = phase;
                     this.phaseFrame = phase.duration + progress; // Adding progress to the phase duration results in how far it is into the phase
@@ -341,10 +375,24 @@ public class AnimatedTexture extends DynamicTexture implements TickableTexture {
         }
 
         public void advance() {
+            if (!loop && frame >= duration - 1) {
+                pause();
+                return;
+            }
+
             frame++;
             if (frame >= duration) {
                 frame = 0;
             }
+            updateCurrentPhase();
+        }
+
+        public void pause() {
+            changed = false;
+        }
+
+        public void rewind() {
+            frame = 0;
             updateCurrentPhase();
         }
 

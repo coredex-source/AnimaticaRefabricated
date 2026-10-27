@@ -21,6 +21,9 @@
   "entrypoints": {
     "client": [
       "io.github.foundationgames.animatica.loaders.fabric.AnimaticaFabric"
+    ],
+    "sodium:config_api_user": [
+      "io.github.foundationgames.animatica.compat.SodiumCompat"
     ]
   },
   "mixins": [

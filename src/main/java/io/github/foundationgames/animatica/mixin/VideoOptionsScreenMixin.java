@@ -19,14 +19,16 @@ public abstract class VideoOptionsScreenMixin extends Screen {
             method = "addOptions",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/gui/components/OptionsList;addSmall([Lnet/minecraft/client/OptionInstance;)V"
+                    target = "Lnet/minecraft/client/gui/components/OptionsList;addSmall([Lnet/minecraft/client/OptionInstance;)V",
+                    ordinal = 1
             ),
             index = 0
     )
     private OptionInstance<?>[] animatica$addTextureAnimationOptionButton(OptionInstance<?>[] old) {
-        var options = new OptionInstance<?>[old.length + 1];
+        var options = new OptionInstance<?>[old.length + 2];
         System.arraycopy(old, 0, options, 0, old.length);
-        options[options.length - 1] = Animatica.CONFIG.getAnimatedTexturesOption();
+        options[old.length] = Animatica.CONFIG.getAnimatedTexturesOption();
+        options[old.length + 1] = Animatica.CONFIG.getPlayOnceRestartOption();
         return options;
     }
 }

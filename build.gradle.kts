@@ -64,10 +64,20 @@ stonecutter {
     }
 }
 
+repositories {
+    maven("https://maven.caffeinemc.net/releases") {
+        content { includeGroup("net.caffeinemc") }
+    }
+}
+
 dependencies {
     // Optional, only used for PBR texture compatibility
     optionalProp("deps.iris") {
         modstitchModCompileOnly("maven.modrinth:iris:$it")
+    }
+
+    optionalProp("deps.sodium") {
+        compileOnly("net.caffeinemc:sodium-fabric:$it") { isTransitive = false }
     }
 
     modstitch.loom {

@@ -12,6 +12,9 @@ iconFile = "${mod_icon}"
 authors = "${mod_author}"
 description = '''${mod_description}'''
 
+[modproperties.${mod_id}]
+"sodium:config_api_user" = "io.github.foundationgames.animatica.compat.SodiumCompat"
+
 [[dependencies.${mod_id}]]
 modId = "neoforge"
 type = "required"
